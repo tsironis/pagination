@@ -1,0 +1,26 @@
+{
+  "name": "paginator",
+  "version": "0.1.0",
+  "ignore": [
+    "**/.*",
+    "**/_*",
+    "node_modules",
+    "specs",
+    "libs",
+    "*.md",
+    "Gruntfile.js",
+    "package.json",
+    "bower.json"
+  ],
+  "devDependencies": {
+    "backbone": "~1.1.2",
+    "underscore": "~1.6.0",
+    "jasmine-ajax": "~2.0.1"
+  },
+  "keywords": [
+    "backbone",
+    "pagination",
+    "collection"
+  ],
+  "main": "./pagination.js"
+}
