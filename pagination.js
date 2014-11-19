@@ -61,12 +61,13 @@ Licensed under the MIT @license.
       options = options || {};
       var state = this.state = _.extend({}, PageableProto.state, this.state,
                                        options.state || {});
-      var queryParams = this.queryParams = _.extend({}, PageableProto.queryParams, this.queryParams,
+      this.queryParams = _.extend({}, PageableProto.queryParams, this.queryParams,
                                        options.queryParams || {});
       state.currentPage = state.firstPage;
       this._makeFullCollection(models);
 
       this.on('sync', this._onSync, this);
+      this.on('change', this._onChange, this);
       this.on('reset', this._onReset, this);
 
       this._updateState();
@@ -91,19 +92,22 @@ Licensed under the MIT @license.
     },
 
     getPage: function(page) {
-      var totalPages = this.state.totalPages;
+      var state = _.clone(this.state),
+          firstPage = state.firstPage,
+          totalPages = state.totalPages;
+
       switch (page) {
         case 'first':
-          page = 0;
+          page = firstPage;
           break;
         case 'last':
-          page = totalPages - 1;
+          page = --totalPages;
           break;
         case 'next':
-          page = ++this.state.currentPage;
+          page = ++state.currentPage;
           break;
         case 'previous':
-          page = --this.state.currentPage;
+          page = --state.currentPage;
           break;
       }
 
@@ -117,7 +121,7 @@ Licensed under the MIT @license.
     },
 
     _updateState: function() {
-      this.state.totalPages ? this.state.totalPages : Math.ceil(this.fullCollection.length / this.state.pageSize);
+      this.state.totalPages = this.state.totalPages || Math.ceil(this.fullCollection.length / this.state.pageSize);
     },
 
     _onSync: function() {
@@ -125,6 +129,10 @@ Licensed under the MIT @license.
       if (mode === "client") {
         this._paginate(true);
       }
+    },
+
+    _onChange: function () {
+      this.fullCollection.reset(this.toJSON(), {silent: true});
     },
 
     _onReset: function() {
@@ -147,10 +155,6 @@ Licensed under the MIT @license.
       var state = _.clone(this.state);
       var currentPage = state.currentPage;
 
-      if (state.firstPage === 0 && currentPage > 0) {
-        currentPage--;
-      }
-
       var pageSize = state.pageSize;
       var pageStart = currentPage * pageSize, pageEnd = pageStart + pageSize;
       if (this.mode === "client" && sync) {
@@ -170,15 +174,20 @@ Licensed under the MIT @license.
     fetch: function(options) {
       options = options || {};
       var state = this.state;
-      var queryParams = this.queryParams;
+      var queryParams = _.omit(this.queryParams, "totalPages");
       var data = {};
+
 
       _.each(queryParams, function(value, key) {
         if (!_.isNull(state[key]) &&
             !_.isUndefined(state[key]) &&
             state[key] !== PageableProto.state[key])
         {
-          data[value] = state[key];
+          if (value === "order") {
+            data[value] = queryParams.directons[state[key]];
+          } else {
+            data[value] = state[key];
+          }
         }
       });
 
@@ -187,7 +196,7 @@ Licensed under the MIT @license.
       if (_.isFunction(url)) url = url.call(this);
 
       options.url = url;
-      options.data = _.extend(options.data, data);
+      options.data = _.extend({}, options.data, data);
 
       return BBColProto.fetch.call(this, options);
     }

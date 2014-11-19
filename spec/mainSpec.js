@@ -3,6 +3,9 @@ var Client = Backbone.PageableCollection.extend({
   state: {
     pageSize: 3
   },
+  queryParams: {
+    pageSize: 'page_size'
+  },
   mode: "client",
   comparator: function(person) {
     return person.get('age');
@@ -39,8 +42,10 @@ describe('Client Mode: Pagination should', function() {
       expect(collection.at(1).get('name')).toBe("Brian");
     });
     it('with correct state attributes', function() {
-      expect(collection.state.pageSize).toEqual(3);
       expect(collection.mode).toEqual('client');
+    });
+    it('and correct queryParams', function() {
+      expect(collection.queryParams).toEqual({ currentPage : 'page', pageSize : 'page_size', totalPages : 'total_pages', totalRecords : 'total_entries', sortKey : 'sort_by', order : 'order', directions : { "-1" : 'asc', "1" : 'desc' } });
     });
   });
   describe('_paginate', function() {
@@ -48,17 +53,20 @@ describe('Client Mode: Pagination should', function() {
       collection.getFirstPage();
       expect(collection.state.currentPage).toEqual(0);
       expect(collection.models.length).toEqual(3);
+      expect(collection.toJSON()).toEqual([ { name : 'George', age : 18 }, { name : 'Peter', age : 48 }, { name : 'Mary', age : 52 } ]);
     });
     it('should get second page', function() {
       collection.getPage(1);
       expect(collection.state.currentPage).toEqual(1);
       expect(collection.models.length).toEqual(3);
+      expect(collection.toJSON()).toEqual([ { name : 'Stewie', age : 1 }, { name : 'Brian', age : 7 }, { name : 'Kate', age : 28 } ]);
     });
     it('and then get last page', function() {
       collection.getLastPage();
       expect(collection.state.currentPage).toEqual(2);
       expect(collection.state.totalPages).toEqual(3);
       expect(collection.models.length).toEqual(1);
+      expect(collection.toJSON()).toEqual([ { name : 'Jess', age : 15 } ]);
     });
   });
   describe('fetch', function() {
@@ -76,10 +84,10 @@ describe('Client Mode: Pagination should', function() {
         "contentType": 'text/plain',
         "responseText": JSON.stringify(data)
       });
-      expect(collection.state.currentPage).toEqual(1);
+      expect(collection.state.currentPage).toEqual(0);
       expect(jasmine.Ajax.requests.count()).toEqual(1);
       expect(collection._paginate).toHaveBeenCalledWith(true);
-      expect(jasmine.Ajax.requests.mostRecent().url).toEqual('/api/v1/users?page=1&per_page=3&order=-1');
+      expect(jasmine.Ajax.requests.mostRecent().url).toEqual('/api/v1/users?page=0&page_size=3');
       expect(collection.length).toEqual(3);
       expect(collection.fullCollection.length).toEqual(7);
       collection._paginate.calls.reset();
@@ -107,10 +115,10 @@ describe('Server Mode: Pagination should', function() {
         "contentType": 'text/plain',
         "responseText": JSON.stringify(data)
       });
-      expect(collectionServer.state.currentPage).toEqual(1);
+      expect(collectionServer.state.currentPage).toEqual(0);
       expect(jasmine.Ajax.requests.count()).toEqual(1);
       expect(collectionServer._paginate).not.toHaveBeenCalled();
-      expect(jasmine.Ajax.requests.mostRecent().url).toEqual('/api/v1/users?page=1&per_page=3&order=-1');
+      expect(jasmine.Ajax.requests.mostRecent().url).toEqual('/api/v1/users?page=0&per_page=3');
       expect(collectionServer.length).toEqual(7);
       collectionServer._paginate.calls.reset();
     });
@@ -118,7 +126,7 @@ describe('Server Mode: Pagination should', function() {
       spyOn(collectionServer, '_paginate');
       collectionServer.getNextPage();
       expect(jasmine.Ajax.requests.count()).toEqual(1);
-      expect(collectionServer.state.currentPage).toEqual(2);
+      expect(collectionServer.state.currentPage).toEqual(1);
       jasmine.Ajax.requests.mostRecent().response({
         "status": 200,
         "contentType": 'text/plain',
