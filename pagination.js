@@ -67,7 +67,6 @@ Licensed under the MIT @license.
       this._makeFullCollection(models);
 
       this.on('sync', this._onSync, this);
-      this.on('change', this._onChange, this);
       this.on('reset', this._onReset, this);
 
       this._updateState();
@@ -131,10 +130,6 @@ Licensed under the MIT @license.
       }
     },
 
-    _onChange: function () {
-      this.fullCollection.reset(this.toJSON(), {silent: true});
-    },
-
     _onReset: function() {
       var mode = this.mode;
       if (mode === "client") {
@@ -164,6 +159,8 @@ Licensed under the MIT @license.
       var models = _.clone(this.fullCollection.models || this.models);
 
       this.reset(models.slice(pageStart, pageEnd));
+      
+      this.trigger('paginate');
     },
 
     setPageSize: function(pageSize) {
@@ -184,7 +181,7 @@ Licensed under the MIT @license.
             state[key] !== PageableProto.state[key])
         {
           if (value === "order") {
-            data[value] = queryParams.directons[state[key]];
+            data[value] = queryParams.directions[state[key]];
           } else {
             data[value] = state[key];
           }
